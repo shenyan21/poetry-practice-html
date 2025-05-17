@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>诗词选</title>
+  <style>
+    body { margin: 0; padding: 20px; font-family: "Microsoft YaHei", sans-serif; background-color: #f0f2f5; }
+    header { display: flex; align-items: center; margin-bottom: 20px; }
+    #mainTitle { font-size: 32px; color: #333; cursor: pointer; margin-right: auto; }
+    .header-buttons { display: flex; gap: 10px; }
+    .header-buttons button { padding: 8px 16px; font-size: 16px; cursor: pointer; }
+    #filterContainer { display: none; background-color: #fff; border-radius: 6px; padding: 20px; margin-bottom: 20px; }
+    #filterContainer h2 { margin-bottom: 10px; font-size: 20px; }
+    #filterContainer label { display: block; margin-top: 10px; margin-bottom: 5px; font-weight: bold; }
+    #filterContainer input[type="text"], #filterContainer textarea { padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; width: 80%; }
+    .filter-button-group { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 10px; }
+    .filter-button-group button { padding: 8px 12px; border: 1px solid #ccc; background-color: #f9f9f9; border-radius: 4px; cursor: pointer; }
+    .filter-button-group button.active { background-color: #007bff; color: #fff; border-color: #007bff; }
+    #filterContainer .filter-actions { display: flex; justify-content: center; margin-top: 20px; gap: 10px; }
+    #filterContainer .filter-actions button { padding: 10px 20px; border: none; border-radius: 4px; font-size: 14px; cursor: pointer; }
+    #filterContainer .row { display: flex; align-items: flex-start; gap: 20px; margin-bottom: 10px; }
+    #filterContainer .row label { margin: 0 0 5px 0; font-weight: bold; display: block; }
+    #filterContainer .row .filter-button-group { margin-top: 0; }
+    #filterContainer .row input { padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; width: 200px; }
+    #applyFilterBtn2 { background-color: #007bff; color: #fff; }
+    #clearFilterBtn { background-color: #dc3545; color: #fff; }
+    .entries-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .entry { padding: 10px; border-radius: 4px; cursor: pointer; transition: background-color 0.3s; min-height: 80px; display: flex; flex-direction: column; justify-content: center; text-align: center; position: relative; }
+    .entry:hover { background-color: rgba(0,0,0,0.05); }
+    .entry .mark-circle { position: absolute; top: 5px; left: 5px; width: 12px; height: 12px; border-radius: 50%; background-color: red; }
+    .plus-button { position: fixed; right: 30px; bottom: 30px; width: 60px; height: 60px; border-radius: 50%; background-color: #007bff; color: #fff; font-size: 36px; line-height: 60px; text-align: center; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+    .modal-background { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; z-index: 10000; }
+    .modal { background-color: #fff; padding: 20px; width: 90%; max-width: 1000px; border-radius: 6px; position: relative; }
+    .modal h2 { margin-bottom: 10px; }
+    .modal .row { display: flex; align-items: center; gap: 20px; margin-top: 10px; }
+    .modal .row label { margin: 0 0 5px 0; font-weight: bold; display: block; }
+    .modal .row .button-group { margin-top: 0; }
+    .modal .row .title-input { padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; width: 400px; }
+    .modal label { display: block; margin-top: 10px; margin-bottom: 5px; font-weight: bold; }
+    .modal input[type="text"], .modal textarea { padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; width: 80%; }
+    .modal textarea { resize: vertical; min-height: 80px; }
+    .button-group { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 10px; }
+    .button-group button { padding: 8px 12px; border: 1px solid #ccc; background-color: #f9f9f9; border-radius: 4px; cursor: pointer; }
+    .button-group button.active { background-color: #007bff; color: #fff; border-color: #007bff; }
+    .modal-actions { display: flex; justify-content: center; margin-top: 20px; }
+    .modal-actions button { padding: 10px 20px; font-size: 14px; border: none; border-radius: 4px; cursor: pointer; }
+    .close-modal { position: absolute; top: 10px; right: 10px; font-size: 24px; color: #999; cursor: pointer; }
+    .detail-modal-background { 
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      width: 100vw; 
+      height: 100vh; 
+      background: rgba(0,0,0,0.4); 
+      display: none; 
+      z-index: 10000; 
+      justify-content: center; 
+      align-items: center; 
+      flex-direction: column; 
+      gap: 20px; 
+    }
+    .detail-box { 
+      background-color: #fff; 
+      width: 90%; 
+      max-width: 960px; 
+      border-radius: 6px; 
+      position: relative; 
+      padding: 20px; 
+      text-align: center; 
+    }
+    .detail-box h2 { margin-bottom: 10px; }
+    .detail-badge { display: inline-block; padding: 4px 8px; border-radius: 12px; background-color: #eee; margin: 0 8px; }
+    #detailContent { font-family: 'SimSun', '宋体', serif; font-size: 14pt; margin-top: 20px; white-space: pre-wrap; max-height: 400px; overflow-y: auto; text-align: center; }
+    .detail-actions-outside { display: flex; justify-content: center; gap: 20px; }
+    .detail-actions-outside button { padding: 10px 20px; font-size: 14px; border: none; border-radius: 4px; cursor: pointer; color: #fff; }
+    .detail-close { position: absolute; top: 10px; right: 10px; font-size: 24px; color: #999; cursor: pointer; }
+    .detail-arrow-btn { position: absolute; top: 50%; transform: translateY(-50%); background-color: #007bff; color: #fff; border: none; border-radius: 20px; padding: 8px 16px; font-size: 16px; cursor: pointer; z-index: 10001; }
+    #prevEntryBtn { left: -60px; }
+    #nextEntryBtn { right: -60px; }
+    .type-句 { background-color: lightyellow; }
+    .type-诗 { background-color: lightblue; }
+    .type-词 { background-color: lightgreen; }
+    .type-文 { background-color: lightpink; }
+    #editEntryBtn { background-color: #007bff; }
+    #deleteEntryBtn { background-color: red; }
+    #saveEntryBtn { background-color: #007bff; color: #fff; margin: 0 auto; display: block; }
+    .mark-circle-detail { position: absolute; top: 5px; left: 5px; width: 12px; height: 12px; border-radius: 50%; border: 1px solid #999; background-color: transparent; cursor: pointer; }
+    .mark-circle-detail.marked { background-color: red; border-color: red; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 id="mainTitle">诗词选</h1>
+    <div class="header-buttons">
+      <button id="filterBtn">筛选</button>
+      <button id="importBtn">导入诗词</button>
+      <button id="exportBtn">导出诗词</button>
+    </div>
+  </header>
+
+  <div id="filterContainer">
+    <h2>筛选诗词</h2>
+    <div class="row">
+      <div>
+        <label>标记</label>
+        <div class="filter-button-group" id="filterMarkGroup">
+          <button data-mark="marked">已标记</button>
+        </div>
+      </div>
+      <div>
+        <label>类型</label>
+        <div class="filter-button-group" id="filterTypeGroup">
+          <button data-type="句">句</button>
+          <button data-type="诗">诗</button>
+          <button data-type="词">词</button>
+          <button data-type="文">文</button>
+        </div>
+      </div>
+      <div>
+        <label for="filterTitle">题目</label>
+        <input type="text" id="filterTitle" placeholder="请输入题目关键字">
+      </div>
+    </div>
+    <label>朝代</label>
+    <div class="filter-button-group" id="filterDynastyGroup">
+      <button data-dynasty="先秦">先秦</button>
+      <button data-dynasty="秦">秦</button>
+      <button data-dynasty="汉">汉</button>
+      <button data-dynasty="三国">三国</button>
+      <button data-dynasty="晋">晋</button>
+      <button data-dynasty="南北朝">南北朝</button>
+      <button data-dynasty="隋">隋</button>
+      <button data-dynasty="唐">唐</button>
+      <button data-dynasty="五代十国">五代十国</button>
+      <button data-dynasty="北宋">北宋</button>
+      <button data-dynasty="南宋">南宋</button>
+      <button data-dynasty="宋">宋</button>
+      <button data-dynasty="金">金</button>
+      <button data-dynasty="元">元</button>
+      <button data-dynasty="明">明</button>
+      <button data-dynasty="清">清</button>
+      <button data-dynasty="近代">近代</button>
+    </div>
+    <label for="filterAuthor">作者(包含)</label>
+    <input type="text" id="filterAuthor" placeholder="请输入作者关键字">
+    <label>标签</label>
+    <div class="filter-button-group" id="filterLabelGroup">
+      <button data-label="写景">写景</button>
+      <button data-label="状物">状物</button>
+      <button data-label="抒情">抒情</button>
+      <button data-label="咏怀">咏怀</button>
+      <button data-label="豪放">豪放</button>
+      <button data-label="婉约">婉约</button>
+      <button data-label="思乡">思乡</button>
+      <button data-label="怀远">怀远</button>
+      <button data-label="战争">战争</button>
+      <button data-label="家国">家国</button>
+      <button data-label="爱情">爱情</button>
+      <button data-label="闺怨">闺怨</button>
+      
+      <button data-label="伤春">伤春</button>
+      <button data-label="悲秋">悲秋</button>
+      <button data-label="送别">送别</button>
+      <button data-label="离情">离情</button>
+      <button data-label="亲情">亲情</button>
+      <button data-label="友情">友情</button>
+      <button data-label="追忆">追忆</button>
+      <button data-label="怀古">怀古</button>
+      <button data-label="感时">感时</button>
+      <button data-label="伤怀">伤怀</button>
+      <button data-label="理想">理想</button>
+      <button data-label="祝愿">祝愿</button>
+      
+      <button data-label="愁苦">愁苦</button>
+      <button data-label="惆怅">惆怅</button>
+      <button data-label="凄凉">凄凉</button>
+      <button data-label="悲愤">悲愤</button>
+      <button data-label="孤独">孤独</button>
+      <button data-label="思念">思念</button>
+      <button data-label="乐观">乐观</button>
+      <button data-label="喜悦">喜悦</button>
+      <button data-label="喜爱">喜爱</button>
+      <button data-label="赞美">赞美</button>
+      <button data-label="向往">向往</button>
+      <button data-label="感叹">感叹</button>
+    </div>
+    <label for="filterContent">内容(包含)</label>
+    <input type="text" id="filterContent" placeholder="请输入内容关键字">
+    <div class="filter-actions">
+      <button id="applyFilterBtn2">筛选</button>
+      <button id="clearFilterBtn">清空</button>
+    </div>
+  </div>
+
+  <div class="entries-container" id="entriesContainer"></div>
+  <div class="plus-button" id="addEntryBtn">+</div>
+
+  <div class="modal-background" id="entryModalBg">
+    <div class="modal">
+      <span class="close-modal" id="closeEntryModalBtn">×</span>
+      <h2 id="entryModalTitle">新增诗词</h2>
+      <div class="row">
+        <div>
+          <label>类型</label>
+          <div class="button-group" id="typeGroup">
+            <button data-type="句">句</button>
+            <button data-type="诗">诗</button>
+            <button data-type="词">词</button>
+            <button data-type="文">文</button>
+          </div>
+        </div>
+        <div>
+          <label for="entryTitle">题目</label>
+          <input type="text" id="entryTitle" placeholder="(可不填)" class="title-input">
+        </div>
+      </div>
+      <label>朝代</label>
+      <div class="button-group" id="dynastyGroup">
+        <button data-dynasty="先秦">先秦</button>
+        <button data-dynasty="秦">秦</button>
+        <button data-dynasty="汉">汉</button>
+        <button data-dynasty="三国">三国</button>
+        <button data-dynasty="晋">晋</button>
+        <button data-dynasty="南北朝">南北朝</button>
+        <button data-dynasty="隋">隋</button>
+        <button data-dynasty="唐">唐</button>
+        <button data-dynasty="五代十国">五代十国</button>
+        <button data-dynasty="北宋">北宋</button>
+        <button data-dynasty="南宋">南宋</button>
+        <button data-dynasty="宋">宋</button>
+        <button data-dynasty="金">金</button>
+        <button data-dynasty="元">元</button>
+        <button data-dynasty="明">明</button>
+        <button data-dynasty="清">清</button>
+        <button data-dynasty="近代">近代</button>
+      </div>
+      <label for="entryAuthor">作者</label>
+      <input type="text" id="entryAuthor" placeholder="(可不填，若为佚名则不显示)">
+      <label>标签</label>
+      <div class="button-group" id="labelGroup">
+        <button data-label="写景">写景</button>
+        <button data-label="状物">状物</button>
+        <button data-label="抒情">抒情</button>
+        <button data-label="咏怀">咏怀</button>
+        <button data-label="豪放">豪放</button>
+        <button data-label="婉约">婉约</button>
+        <button data-label="思乡">思乡</button>
+        <button data-label="怀远">怀远</button>
+        <button data-label="战争">战争</button>
+        <button data-label="家国">家国</button>
+        <button data-label="爱情">爱情</button>
+        <button data-label="闺怨">闺怨</button>
+        
+        <button data-label="伤春">伤春</button>
+        <button data-label="悲秋">悲秋</button>
+        <button data-label="送别">送别</button>
+        <button data-label="离情">离情</button>
+        <button data-label="亲情">亲情</button>
+        <button data-label="友情">友情</button>
+        <button data-label="追忆">追忆</button>
+        <button data-label="怀古">怀古</button>
+        <button data-label="感时">感时</button>
+        <button data-label="伤怀">伤怀</button>
+        <button data-label="理想">理想</button>
+        <button data-label="祝愿">祝愿</button>
+        
+        <button data-label="愁苦">愁苦</button>
+        <button data-label="惆怅">惆怅</button>
+        <button data-label="凄凉">凄凉</button>
+        <button data-label="悲愤">悲愤</button>
+        <button data-label="孤独">孤独</button>
+        <button data-label="思念">思念</button>
+        <button data-label="乐观">乐观</button>
+        <button data-label="喜悦">喜悦</button>
+        <button data-label="喜爱">喜爱</button>
+        <button data-label="赞美">赞美</button>
+        <button data-label="向往">向往</button>
+        <button data-label="感叹">感叹</button>
+      </div>
+      <label for="entryContent">内容</label>
+      <textarea id="entryContent" placeholder="请输入诗词/文章内容"></textarea>
+      <div class="modal-actions">
+        <button id="saveEntryBtn">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-modal-background" id="detailModalBg">
+    <div class="detail-box">
+      <button id="prevEntryBtn" class="detail-arrow-btn">←</button>
+      <button id="nextEntryBtn" class="detail-arrow-btn">→</button>
+      <span class="detail-close" id="closeDetailModalBtn">×</span>
+      <div id="markCircle" class="mark-circle-detail"></div>
+      <h2 id="detailTitle"></h2>
+      <div id="detailMeta"></div>
+      <pre id="detailContent"></pre>
+    </div>
+    <div class="detail-actions-outside">
+      <button id="editEntryBtn">修改</button>
+      <button id="deleteEntryBtn">删除</button>
+    </div>
+  </div>
+
+  <input type="file" id="importFileInput" style="display: none;" accept=".json">
+
+  <script>
+    let entries = JSON.parse(localStorage.getItem("poemEntries")) || [];
+    let currentDetailIndex = -1;
+    let currentEditIndex = -1;
+    let selectedType = "";
+    let selectedDynasty = "";
+    let selectedLabels = [];
+    let currentFilteredEntries = null;
+    let currentFilteredIndex = -1;
+    let isFilterVisible = false;
+
+    const mainTitle = document.getElementById("mainTitle");
+    const filterBtn = document.getElementById("filterBtn");
+    const importBtn = document.getElementById("importBtn");
+    const exportBtn = document.getElementById("exportBtn");
+    const importFileInput = document.getElementById("importFileInput");
+    const filterContainer = document.getElementById("filterContainer");
+    const entriesContainer = document.getElementById("entriesContainer");
+    const entryModalBg = document.getElementById("entryModalBg");
+    const detailModalBg = document.getElementById("detailModalBg");
+
+    filterContainer.style.display = "none";
+
+    // 计算按钮宽度并设置容器宽度
+    function adjustButtonGroupWidth() {
+      const filterLabelGroup = document.getElementById("filterLabelGroup");
+      const labelGroup = document.getElementById("labelGroup");
+      
+      let buttonWidth;
+      // 优先尝试从labelGroup获取按钮宽度（新建/修改时总是可见）
+      const labelButton = labelGroup.querySelector("button");
+      if (labelGroup.offsetParent !== null && labelButton) { // 确保labelGroup可见
+        buttonWidth = labelButton.offsetWidth;
+      } else {
+        // 如果labelGroup不可见，临时显示filterLabelGroup来计算宽度
+        const wasHidden = filterContainer.style.display === "none";
+        if (wasHidden) {
+          filterContainer.style.display = "block";
+          filterContainer.style.visibility = "hidden"; // 隐藏但仍可计算宽度
+        }
+        const sampleButton = filterLabelGroup.querySelector("button");
+        buttonWidth = sampleButton.offsetWidth;
+        if (wasHidden) {
+          filterContainer.style.display = "none";
+          filterContainer.style.visibility = "visible"; // 恢复默认
+        }
+      }
+
+      const gap = 10; // CSS中定义的gap
+      const buttonsPerRow = 12;
+      // 计算每行12个按钮的总宽度：按钮宽度 * 12 + 间距 * (12 - 1) + 50
+      const rowWidth = (buttonWidth * buttonsPerRow) + (gap * (buttonsPerRow - 1));
+
+      // 设置筛选界面的标签容器宽度
+      filterLabelGroup.style.width = `${rowWidth + 50}px`;
+      // 设置新建/编辑界面的标签容器宽度
+      labelGroup.style.width = `${rowWidth + 50}px`;
+    }
+
+    // 在页面加载和模态框显示时调整宽度
+    window.addEventListener("load", adjustButtonGroupWidth);
+    document.getElementById("addEntryBtn").addEventListener("click", () => {
+      adjustButtonGroupWidth();
+      // 原有逻辑...
+      currentEditIndex = -1;
+      document.getElementById("entryModalTitle").textContent = "新增诗词";
+      selectedType = "";
+      selectedDynasty = "";
+      selectedLabels = [];
+      typeButtons.forEach(b => b.classList.remove("active"));
+      dynastyButtons.forEach(b => b.classList.remove("active"));
+      labelButtons.forEach(b => b.classList.remove("active"));
+      document.getElementById("entryTitle").value = "";
+      document.getElementById("entryAuthor").value = "";
+      document.getElementById("entryContent").value = "";
+      entryModalBg.style.display = "flex";
+    });
+    document.getElementById("editEntryBtn").addEventListener("click", () => {
+      currentEditIndex = currentDetailIndex;
+      const entry = entries[currentDetailIndex];
+      document.getElementById("entryModalTitle").textContent = "修改诗词";
+      document.querySelectorAll("#typeGroup button").forEach(b => {
+        b.classList.remove("active");
+        if (b.getAttribute("data-type") === entry.type) {
+          b.classList.add("active");
+          selectedType = entry.type;
+        }
+      });
+      document.querySelectorAll("#dynastyGroup button").forEach(b => {
+        b.classList.remove("active");
+        if (b.getAttribute("data-dynasty") === entry.dynasty) {
+          b.classList.add("active");
+          selectedDynasty = entry.dynasty;
+        }
+      });
+      document.querySelectorAll("#labelGroup button[data-label]").forEach(b => {
+        const label = b.getAttribute("data-label");
+        b.classList.remove("active");
+        if (entry.labels && entry.labels.includes(label)) b.classList.add("active");
+      });
+      selectedLabels = entry.labels ? [...entry.labels] : [];
+      document.getElementById("entryTitle").value = entry.title || "";
+      document.getElementById("entryAuthor").value = (entry.author && entry.author !== "佚名") ? entry.author : "";
+      document.getElementById("entryContent").value = entry.content || "";
+      entryModalBg.style.display = "flex";
+      detailModalBg.style.display = "none";
+      // 确保模态框显示后再调整宽度
+      setTimeout(adjustButtonGroupWidth, 0);
+    });
+    filterBtn.addEventListener("click", () => {
+      isFilterVisible = !isFilterVisible;
+      filterContainer.style.display = isFilterVisible ? "block" : "none";
+      if (isFilterVisible) adjustButtonGroupWidth();
+    });
+
+    function saveEntries() {
+      try {
+        localStorage.setItem("poemEntries", JSON.stringify(entries));
+      } catch (error) {
+        alert("保存失败：可能超出 localStorage 容量限制");
+      }
+    }
+
+    function renderEntries(filtered = null) {
+      entriesContainer.innerHTML = "";
+      const typeOrder = { "句": 0, "诗": 1, "词": 2, "文": 3 };
+      const dynastyOrder = {
+        "先秦": 0, "秦": 1, "汉": 2, "三国": 3, "晋": 4, "南北朝": 5, "隋": 6,
+        "唐": 7, "五代十国": 8, "北宋": 9, "南宋": 10, "宋": 11, "金": 12,
+        "元": 13, "明": 14, "清": 15, "近代": 16
+      };
+
+      let data = filtered || entries;
+      currentFilteredEntries = data;
+
+      data.sort((a, b) => {
+        let diff = typeOrder[a.type] - typeOrder[b.type];
+        if (diff !== 0) return diff;
+        const dynastyA = dynastyOrder[a.dynasty] !== undefined ? dynastyOrder[a.dynasty] : 999;
+        const dynastyB = dynastyOrder[b.dynasty] !== undefined ? dynastyOrder[b.dynasty] : 999;
+        diff = dynastyA - dynastyB;
+        if (diff !== 0) return diff;
+        diff = (a.author || "").localeCompare(b.author || "", "zh-CN");
+        if (diff !== 0) return diff;
+        return (a.title || "").localeCompare(b.title || "", "zh-CN");
+      });
+
+      const fragment = document.createDocumentFragment();
+      data.forEach((item, index) => {
+        const originalIndex = entries.findIndex(entry => 
+          entry.type === item.type &&
+          entry.title === item.title &&
+          entry.dynasty === item.dynasty &&
+          entry.author === item.author &&
+          entry.content === item.content
+        );
+        item._originalIndex = originalIndex;
+        item._filteredIndex = index;
+        const div = document.createElement("div");
+        div.className = "entry";
+        if (item.type === "句") div.classList.add("type-句");
+        else if (item.type === "诗") div.classList.add("type-诗");
+        else if (item.type === "词") div.classList.add("type-词");
+        else if (item.type === "文") div.classList.add("type-文");
+        let displayTitle = item.title || "";
+        let displayAuthor = (item.author && item.author !== "佚名") ? item.author : "";
+        let firstLineTitle = displayTitle && displayAuthor ? `${displayTitle} - ${displayAuthor}` : displayTitle || displayAuthor;
+        let contentFirstLine = item.content.split('\n')[0] || "";
+        div.innerHTML = `
+          ${item.marked ? '<div class="mark-circle"></div>' : ''}
+          <div style="font-weight: bold;">${firstLineTitle}</div>
+          <div style="font-size:14px;color:#555;">${contentFirstLine}</div>
+        `;
+        div.addEventListener("click", () => openDetail(originalIndex, index));
+        fragment.appendChild(div);
+      });
+      entriesContainer.appendChild(fragment);
+    }
+
+    function toggleMark(index) {
+      entries[index].marked = !entries[index].marked;
+      saveEntries();
+      renderEntries(currentFilteredEntries);
+      if (detailModalBg.style.display === "flex" && currentDetailIndex === index) {
+        const markCircle = document.getElementById("markCircle");
+        markCircle.classList.toggle("marked", entries[index].marked);
+      }
+    }
+
+    function openDetail(originalIndex, filteredIndex) {
+      currentDetailIndex = originalIndex;
+      currentFilteredIndex = filteredIndex;
+      const entry = entries[originalIndex];
+      const detailTitleEl = document.getElementById("detailTitle");
+      if (entry.title) {
+        detailTitleEl.textContent = entry.title;
+        detailTitleEl.style.display = "block";
+      } else {
+        detailTitleEl.textContent = "";
+        detailTitleEl.style.display = "none";
+      }
+      let metaHTML = "";
+      if (entry.dynasty) metaHTML += `<span class="detail-badge">${entry.dynasty}</span>`;
+      if (entry.author && entry.author !== "佚名") metaHTML += `<span class="detail-badge">${entry.author}</span>`;
+      if (entry.labels && entry.labels.length > 0) {
+        entry.labels.forEach(label => metaHTML += `<span class="detail-badge">${label}</span>`);
+      }
+      const detailMeta = document.getElementById("detailMeta");
+      detailMeta.innerHTML = metaHTML;
+      detailMeta.style.display = metaHTML ? "block" : "none";
+      const detailContentEl = document.getElementById("detailContent");
+      detailContentEl.textContent = entry.content;
+      detailContentEl.style.maxHeight = "400px";
+      detailContentEl.style.overflowY = "auto";
+      detailContentEl.style.textAlign = entry.type === "文" ? "left" : "center";
+      const markCircle = document.getElementById("markCircle");
+      markCircle.classList.remove("marked");
+      if (entry.marked) markCircle.classList.add("marked");
+      detailModalBg.style.display = "flex";
+    }
+
+    function closeDetail() {
+      detailModalBg.style.display = "none";
+    }
+
+    document.getElementById("closeDetailModalBtn").addEventListener("click", closeDetail);
+    document.getElementById("prevEntryBtn").addEventListener("click", () => {
+      if (currentFilteredIndex > 0) {
+        const prevItem = currentFilteredEntries[currentFilteredIndex - 1];
+        openDetail(prevItem._originalIndex, currentFilteredIndex - 1);
+      }
+    });
+    document.getElementById("nextEntryBtn").addEventListener("click", () => {
+      if (currentFilteredIndex < currentFilteredEntries.length - 1) {
+        const nextItem = currentFilteredEntries[currentFilteredIndex + 1];
+        openDetail(nextItem._originalIndex, currentFilteredIndex + 1);
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (detailModalBg.style.display === "flex") {
+        if (event.key === "ArrowLeft" && currentFilteredIndex > 0) {
+          const prevItem = currentFilteredEntries[currentFilteredIndex - 1];
+          openDetail(prevItem._originalIndex, currentFilteredIndex - 1);
+        } else if (event.key === "ArrowRight" && currentFilteredIndex < currentFilteredEntries.length - 1) {
+          const nextItem = currentFilteredEntries[currentFilteredIndex + 1];
+          openDetail(nextItem._originalIndex, currentFilteredIndex + 1);
+        }
+      }
+    });
+
+    document.getElementById("markCircle").addEventListener("click", () => {
+      toggleMark(currentDetailIndex);
+    });
+
+    document.getElementById("deleteEntryBtn").addEventListener("click", () => {
+      if (confirm("确认删除这条诗词吗？")) {
+        entries.splice(currentDetailIndex, 1);
+        saveEntries();
+        renderEntries();
+        closeDetail();
+      }
+    });
+
+    const typeButtons = document.querySelectorAll("#typeGroup button");
+    typeButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        typeButtons.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        selectedType = btn.getAttribute("data-type");
+      });
+    });
+    const dynastyButtons = document.querySelectorAll("#dynastyGroup button");
+    dynastyButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        dynastyButtons.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        selectedDynasty = btn.getAttribute("data-dynasty");
+      });
+    });
+    const labelButtons = document.querySelectorAll("#labelGroup button[data-label]");
+    labelButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        btn.classList.toggle("active");
+        const label = btn.getAttribute("data-label");
+        if (selectedLabels.includes(label)) {
+          selectedLabels = selectedLabels.filter(l => l !== label);
+        } else {
+          selectedLabels.push(label);
+        }
+      });
+    });
+
+    document.getElementById("closeEntryModalBtn").addEventListener("click", () => {
+      entryModalBg.style.display = "none";
+    });
+
+    document.getElementById("saveEntryBtn").addEventListener("click", () => {
+      const title = document.getElementById("entryTitle").value.trim();
+      const authorInput = document.getElementById("entryAuthor").value.trim();
+      const content = document.getElementById("entryContent").value.trim();
+      const author = authorInput || "佚名";
+      if (!selectedType || !selectedDynasty || !content) {
+        alert("请至少选择类型、朝代并填写内容！");
+        return;
+      }
+      const entryData = { 
+        type: selectedType, 
+        title, 
+        dynasty: selectedDynasty, 
+        author, 
+        labels: selectedLabels, 
+        content,
+        marked: currentEditIndex !== -1 ? entries[currentEditIndex].marked : false
+      };
+      if (currentEditIndex === -1) {
+        entries.push(entryData);
+      } else {
+        entries[currentEditIndex] = entryData;
+      }
+      saveEntries();
+      renderEntries();
+      entryModalBg.style.display = "none";
+      let sortedIndex = -1;
+      for (let i = 0; i < entries.length; i++) {
+        if (entries[i].type === entryData.type &&
+            entries[i].title === entryData.title &&
+            entries[i].dynasty === entryData.dynasty &&
+            entries[i].author === entryData.author &&
+            entries[i].content === entryData.content) {
+          sortedIndex = i;
+          break;
+        }
+      }
+      if (sortedIndex !== -1) {
+        openDetail(sortedIndex, currentFilteredEntries ? currentFilteredEntries.findIndex(item => item._originalIndex === sortedIndex) : sortedIndex);
+      } else {
+        openDetail(0, 0);
+      }
+    });
+
+    mainTitle.addEventListener("click", () => {
+      filterContainer.style.display = "none";
+      isFilterVisible = false;
+      renderEntries();
+    });
+
+    let filterSelectedTypes = [];
+    let filterSelectedDynasties = [];
+    let filterSelectedLabels = [];
+    let filterMarked = false;
+    const filterTypeBtns = document.querySelectorAll("#filterTypeGroup button");
+    filterTypeBtns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        btn.classList.toggle("active");
+        const t = btn.getAttribute("data-type");
+        if (filterSelectedTypes.includes(t)) {
+          filterSelectedTypes = filterSelectedTypes.filter(x => x !== t);
+        } else {
+          filterSelectedTypes.push(t);
+        }
+      });
+    });
+    const filterDynastyBtns = document.querySelectorAll("#filterDynastyGroup button");
+    filterDynastyBtns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        btn.classList.toggle("active");
+        const d = btn.getAttribute("data-dynasty");
+        if (filterSelectedDynasties.includes(d)) {
+          filterSelectedDynasties = filterSelectedDynasties.filter(x => x !== d);
+        } else {
+          filterSelectedDynasties.push(d);
+        }
+      });
+    });
+    const filterLabelBtns = document.querySelectorAll("#filterLabelGroup button");
+    filterLabelBtns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        btn.classList.toggle("active");
+        const l = btn.getAttribute("data-label");
+        if (filterSelectedLabels.includes(l)) {
+          filterSelectedLabels = filterSelectedLabels.filter(x => x !== l);
+        } else {
+          filterSelectedLabels.push(l);
+        }
+      });
+    });
+    const filterMarkBtn = document.querySelector("#filterMarkGroup button");
+    filterMarkBtn.addEventListener("click", () => {
+      filterMarkBtn.classList.toggle("active");
+      filterMarked = !filterMarked;
+    });
+
+    function applyFilter() {
+      const titleKeyword = document.getElementById("filterTitle").value.trim().toLowerCase();
+      const authorKeyword = document.getElementById("filterAuthor").value.trim().toLowerCase();
+      const contentKeyword = document.getElementById("filterContent").value.trim().toLowerCase();
+      let filtered = entries.filter(e => {
+        if (filterSelectedTypes.length > 0 && !filterSelectedTypes.includes(e.type)) return false;
+        if (filterSelectedDynasties.length > 0 && !filterSelectedDynasties.includes(e.dynasty)) return false;
+        if (titleKeyword && !(e.title || "").toLowerCase().includes(titleKeyword)) return false;
+        if (authorKeyword && !(e.author || "").toLowerCase().includes(authorKeyword)) return false;
+        if (filterSelectedLabels.length > 0) {
+          const entryLabels = e.labels || [];
+          if (!filterSelectedLabels.some(lab => entryLabels.includes(lab))) return false;
+        }
+        if (filterMarked && !e.marked) return false;
+        if (contentKeyword && !(e.content || "").toLowerCase().includes(contentKeyword)) return false;
+        return true;
+      });
+      renderEntries(filtered);
+    }
+
+    document.getElementById("applyFilterBtn2").addEventListener("click", applyFilter);
+
+    document.getElementById("filterTitle").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") applyFilter();
+    });
+    document.getElementById("filterAuthor").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") applyFilter();
+    });
+    document.getElementById("filterContent").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") applyFilter();
+    });
+
+    document.getElementById("clearFilterBtn").addEventListener("click", () => {
+      filterSelectedTypes = [];
+      filterSelectedDynasties = [];
+      filterSelectedLabels = [];
+      filterMarked = false;
+      filterTypeBtns.forEach(btn => btn.classList.remove("active"));
+      filterDynastyBtns.forEach(btn => btn.classList.remove("active"));
+      filterLabelBtns.forEach(btn => btn.classList.remove("active"));
+      filterMarkBtn.classList.remove("active");
+      document.getElementById("filterTitle").value = "";
+      document.getElementById("filterAuthor").value = "";
+      document.getElementById("filterContent").value = "";
+      renderEntries();
+    });
+
+    importBtn.addEventListener("click", () => importFileInput.click());
+    importFileInput.addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const importedData = JSON.parse(e.target.result);
+          if (!Array.isArray(importedData)) {
+            alert("导入的文件格式错误，必须是 JSON 数组！");
+            return;
+          }
+          const requiredFields = ["type", "title", "dynasty", "author", "labels", "content"];
+          const validTypes = ["句", "诗", "词", "文"];
+          const validDynasties = Array.from(dynastyButtons).map(btn => btn.getAttribute("data-dynasty"));
+          const validLabels = Array.from(labelButtons).map(btn => btn.getAttribute("data-label"));
+          for (let i = 0; i < importedData.length; i++) {
+            const entry = importedData[i];
+            for (let field of requiredFields) {
+              if (!(field in entry)) {
+                alert(`导入失败：第 ${i + 1} 条目缺少字段 ${field}`);
+                return;
+              }
+            }
+            if (!validTypes.includes(entry.type)) {
+              alert(`导入失败：第 ${i + 1} 条目类型 ${entry.type} 不合法`);
+              return;
+            }
+            if (!validDynasties.includes(entry.dynasty)) {
+              alert(`导入失败：第 ${i + 1} 条目朝代 ${entry.dynasty} 不合法`);
+              return;
+            }
+            if (!Array.isArray(entry.labels) || entry.labels.some(label => !validLabels.includes(label))) {
+              alert(`导入失败：第 ${i + 1} 条目标签 ${entry.labels} 包含非法值`);
+              return;
+            }
+            if (!("marked" in entry)) entry.marked = false;
+          }
+          entries = importedData;
+          saveEntries();
+          renderEntries();
+          alert(`诗词导入成功！共 ${entries.length} 条`);
+        } catch (error) {
+          alert("导入失败：文件内容不是有效的 JSON 格式");
+        }
+        importFileInput.value = "";
+      };
+      reader.readAsText(file);
+    });
+
+    exportBtn.addEventListener("click", () => {
+      const exportData = entries.map(({ _index, _originalIndex, ...rest }) => rest);
+      const jsonString = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      a.download = `poem_entries_${date}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    renderEntries();
+  </script>
+</body>
+</html>
